@@ -1,0 +1,71 @@
+version: "3.9"
+
+services:
+  gateway:
+    build: ./gateway
+    container_name: gateway
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/sessions
+      SESSION_TIMEOUT: 3600
+      IDLE_TIMEOUT: 300
+      MINIO_ENDPOINT:   http://minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      MINIO_BUCKET:     recordings        # auto-created the first time we need it
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - redis
+      - worker
+      - minio
+    restart: unless-stopped
+
+  worker:
+    build: ./worker
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      MAX_CONTEXTS: 20
+      MINIO_ENDPOINT:   http://minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      MINIO_BUCKET:     recordings        # auto-created the first time we need it
+    depends_on:
+      - redis
+      - db
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: unless-stopped
+
+  db:
+    image: postgres:15-alpine
+    container_name: db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: sessions
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
+  # ──────────────── 🆕 object-storage for recordings ──────────────── #
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    environment:
+      MINIO_ROOT_USER:     minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"   # S3-compatible API
+      - "9001:9001"   # Web console (optional)
+    restart: unless-stopped
+
+volumes:
+  pgdata:
