@@ -1,4 +1,4 @@
-# Browser Gateway & Worker Platform
+# Parallel Browsers as a Service
 
 ## What this project is
 
