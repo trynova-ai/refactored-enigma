@@ -3,6 +3,7 @@ Single SQLAlchemy model that mirrors the old `browser_sessions` table.
 Additional columns?  Add them here once and they’ll migrate automatically on
 next start (for simple additions; for complex DDL use Alembic later).
 """
+# gateway/models.py
 
 import uuid
 from datetime import datetime, timezone
@@ -20,7 +21,9 @@ class BrowserSession(Base):
     session_id: Mapped[uuid.UUID] = Column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
-    client_id: Mapped[str | None] = Column(Text, nullable=True)
+    tenant_id: Mapped[uuid.UUID] = Column(
+        UUID(as_uuid=True), nullable=False, index=True
+    )
     worker_id: Mapped[str] = Column(Text, nullable=False)
 
     created_at: Mapped[datetime] = Column(

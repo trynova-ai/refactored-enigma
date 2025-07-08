@@ -1,5 +1,7 @@
-from fastapi import FastAPI, WebSocket, HTTPException, status
+# gateway/app.py
+from fastapi import FastAPI, WebSocket, status, Depends, Request
 import asyncio
+import uuid
 from pydantic import BaseModel
 
 from db import create_schema                      # auto-DDL
@@ -10,6 +12,7 @@ from session_manager import (
 )
 from cdp_proxy import proxy_cdp
 from session_manager import redis
+from middleware.tenant import TenantMiddleware
 
 # --------------------------------------------------------------------------- #
 # Lifespan hook: create tables *then* launch the idle/absolute-timeout sweeper
@@ -21,25 +24,27 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Browser Gateway", lifespan=lifespan)
+app.add_middleware(TenantMiddleware)
+
+def current_tenant(request: Request) -> uuid.UUID:
+    return request.state.tenant_id
 
 class NewSessionReq(BaseModel):
-    client_id: str | None = None
     record: bool = False                 # 🆕 default: not recording
 
 # ---------- REST API ---------- #
 @app.post("/sessions", status_code=status.HTTP_201_CREATED)
-async def new_session(payload: NewSessionReq):
-    try:
-        info = await create_session(
-            client_id=payload.client_id
-        )    
-    except RuntimeError as e:
-        raise HTTPException(status_code=503, detail=str(e))
+async def new_session(
+        payload: NewSessionReq,
+        tenant_id: uuid.UUID = Depends(current_tenant)
+    ):
+    info = await create_session(
+        tenant_id=tenant_id             
+    )
     return {
-        "sessionId": info["session_id"],
+        "sessionId":  info["session_id"],
         "connectUrl": info["connect_url"],
     }
-
 
 @app.delete("/sessions/{session_id}")
 async def delete_session(session_id: str):

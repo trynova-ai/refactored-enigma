@@ -4,7 +4,6 @@ import aiohttp, redis.asyncio as aioredis, asyncpg
 from playwright.async_api import async_playwright
 
 payload = {
-    "client_id": "pytest",   # anything that helps you trace the run
     "record": True           # flip ‟on” for the recorder
 }
 
@@ -47,7 +46,7 @@ async def redis_assert_sessions_gone(r, ids):
 
 async def pg_fetch_rows(conn, ids):
     return await conn.fetch(
-        """SELECT session_id, client_id, worker_id,
+        """SELECT session_id, tenant_id, worker_id,
                   created_at, last_active_at, ended_at, status
              FROM browser_sessions
             WHERE session_id = ANY($1::uuid[])
@@ -72,7 +71,7 @@ def print_session_stats(rows, head=5):
     print("{:36} {:7} {:15} {:26} {:26} {:26} {:8} {:>6}".format(*hdr))
     for r in sample:
         dur = (r["ended_at"] - r["created_at"]).total_seconds()
-        print("{session_id} {client_id!s:7} {worker_id:15} "
+        print("{session_id} {tenant_id!s:7} {worker_id:15} "
               "{created_at} {last_active_at} {ended_at} {status:8} {dur:6.2f}"
               .format(dur=dur, **r))
 

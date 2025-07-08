@@ -5,7 +5,6 @@ from playwright.async_api import async_playwright
 GATEWAY = os.environ.get("GATEWAY_URL", "http://localhost:8000")
 
 payload = {
-    "client_id": "pytest",   # anything that helps you trace the run
     "record": True           # flip ‟on” for the recorder
 }
 

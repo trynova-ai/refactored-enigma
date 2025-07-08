@@ -16,7 +16,7 @@ VIDEO_DIR.mkdir(exist_ok=True, parents=True)
 # ----- spin up your remote browser -------------------------------------------------
 resp = requests.post(
     "http://localhost:8000/sessions",
-    json={"client_id": "pytest", "record": True}
+    json={"record": True}
 )
 resp.raise_for_status()
 cdp_url = resp.json()["connectUrl"]

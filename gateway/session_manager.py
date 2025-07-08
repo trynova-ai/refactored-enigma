@@ -2,13 +2,14 @@
 Session bookkeeping / load-balancing (SQLAlchemy + Redis version).
 Only the create / close logic changed – timeout sweeper is untouched.
 """
-
+# gateway/session_manager.py
 from __future__ import annotations
 
 import asyncio
 import os
 from datetime import datetime, timezone
 from typing import Sequence
+import uuid
 
 import redis.asyncio as aioredis
 from aiohttp import ClientSession
@@ -46,7 +47,7 @@ async def decrement_worker_load(w: str) -> None:
 
 # ────────────────────────── Public API ────────────────────────── #
 
-async def create_session(client_id: str | None) -> dict[str, str]:
+async def create_session(tenant_id: uuid.UUID) -> dict[str, str]:
     # ULID → UUID keeps ordering benefits while matching DB column type
     public_host = os.getenv("PUBLIC_GATEWAY_HOST", "localhost")
     session_id = str(ULID().to_uuid())
@@ -70,8 +71,8 @@ async def create_session(client_id: str | None) -> dict[str, str]:
     # 2️⃣ persist row
     async with get_session() as db:
         db.add(BrowserSession(
+            tenant_id=tenant_id,
             session_id=session_id,
-            client_id=client_id,
             worker_id=worker_host,
         ))
         await db.commit()

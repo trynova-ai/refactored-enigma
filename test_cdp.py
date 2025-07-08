@@ -6,7 +6,7 @@ from playwright.sync_api import sync_playwright
 VIDEO_DIR = Path(__file__).parent / "videos"
 VIDEO_DIR.mkdir(exist_ok=True)
 
-payload = {"client_id": "pytest", "record": True}
+payload = {"record": True}
 resp = requests.post("http://localhost:8000/sessions", json=payload)
 resp.raise_for_status()
 cdp_url = resp.json()["connectUrl"]

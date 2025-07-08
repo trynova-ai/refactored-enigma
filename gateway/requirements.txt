@@ -7,3 +7,4 @@ python-dotenv==1.0.1
 python-ulid==2.2.0      # nicer IDs than raw UUID
 SQLAlchemy==2.0.30 
 aiohttp>=3.12.7
+pyjwt==2.10.1
