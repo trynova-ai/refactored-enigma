@@ -4,6 +4,12 @@ import asyncio
 import uuid
 from pydantic import BaseModel
 
+from sqlalchemy import select
+from db import get_session
+from models import BrowserSession
+from schema import SessionList        #  <-- NEW
+
+
 from db import create_schema                      # auto-DDL
 from session_manager import (
     create_session,
@@ -45,6 +51,25 @@ async def new_session(
         "sessionId":  info["session_id"],
         "connectUrl": info["connect_url"],
     }
+
+@app.get("/sessions", response_model=SessionList)
+async def list_sessions(
+    tenant_id: uuid.UUID = Depends(current_tenant)
+):
+    """
+    Return all sessions that belong to the authenticated tenant.
+    """
+    async with get_session() as db:
+        rows = (
+            await db.execute(
+                select(BrowserSession)
+                .where(BrowserSession.tenant_id == tenant_id)
+                .order_by(BrowserSession.created_at.desc())
+            )
+        ).scalars().all()
+
+    # rows are BrowserSession instances; Pydantic takes care of conversion
+    return SessionList(sessions=rows)
 
 @app.delete("/sessions/{session_id}")
 async def delete_session(session_id: str):
